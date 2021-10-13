@@ -1,5 +1,6 @@
 import gintro/[gtk4, gobject, gio]
 import std/with, tables, hashes, parseutils
+import envService
 
 type
   AddControlData = tuple 
@@ -15,56 +16,54 @@ type
     id: int
     age: int
     name: string
-type 
-  PersonWidget = ref object of Box
-    idLabel: Label
-    nameLabel: Label
-    ageLabel: Label
 
-var redux: Table[int, Person]
+type 
+  FishWidget = ref object of Box
+    idLabel: Label
+    keyLabel: Label
+    valueLabel: Label
+
+
+var fishConfig = getFishEnv()
+var redux: Table[int, EnvVar]
 var idGb: int = 0
 
 proc deletePerson(keyId: int) = 
   redux.del keyId 
 
 
-proc createPerson(name: string, age: int): int = 
-  result = idGb
+proc createEnvVar(value: string, key: string): int = 
+  fishConfig.addKV(value, key)
+  result = fishConfig.high
 
-  let person = Person(age: age, name: name, id: idGb)
-  redux[idGb] = person
-  echo "created sas with id: ", idGb, " and name: ", redux[idGb].name
-
-  idGb.inc()
   
 
 
-proc createEmptyPersonWidget(): PersonWidget = 
+proc createEmptyFishWidget(): FishWidget = 
   let
-    PersonWidget = newBox(PersonWidget, Orientation.horizontal, 5)
+    FishWidget = newBox(FishWidget, Orientation.horizontal, 5)
     idLabel = newLabel()
-    nameLabel = newLabel()
-    ageLabel = newLabel()
+    keyLabel = newLabel()
+    valueLabel = newLabel()
 
   
-  with PersonWidget:
+  with FishWidget:
     idLabel = idLabel
-    nameLabel = nameLabel
-    ageLabel = ageLabel
+    keyLabel = keyLabel
+    valueLabel = valueLabel
     append idLabel
-    append nameLabel
-    append ageLabel
+    append keyLabel
+    append valueLabel
   
-  result = PersonWidget
+  result = FishWidget
 
-proc fillPersonWidgetFromRedux(PersonWidget: PersonWidget, id: int) =
-  let person = redux[id]
-  echo "fillPersonWidgetFromRedux, id: ", id
+proc fillFishWidgetFromRedux(FishWidget: FishWidget, id: int) =
+  let fishConfigLine = redux[id]
+  echo "fillFishWidgetFromRedux, id: ", id
   # echo person
 
-  PersonWidget.idLabel.label = $person.id
-  PersonWidget.nameLabel.label = person.name
-  PersonWidget.ageLabel.label = $person.age
+  FishWidget.keyLabel.label = person.name
+  FishWidget.valueLabel.label = $person.age
 
 
 
@@ -79,16 +78,16 @@ proc getString(self: ListItem): string =
 
 ### SignalFactory callbacks
 proc setup_cb(factory: gtk4.SignalListItemFactory, listitem: gtk4.ListItem) =
-  listitem.setChild(createEmptyPersonWidget())
+  listitem.setChild(createEmptyFishWidget())
   
 proc bind_cb(factory: gtk4.SignalListItemFactory, listitem: gtk4.ListItem) =
   var num: int
   let
-    PersonWidget = listitem.getChild().PersonWidget
+    FishWidget = listitem.getChild().FishWidget
 
   echo "bind_cb,listItem = ", listItem.getString()
   discard listItem.getString().parseInt(num)
-  fillPersonWidgetFromRedux(PersonWidget, num)
+  fillFishWidgetFromRedux(FishWidget, num)
 
 
 proc unbind_cb(factory: gtk4.SignalListItemFactory, listitem: gtk4.ListItem) =
@@ -103,7 +102,7 @@ proc btnAddCb(btn: Button, controlData: AddControlData) =
   var num: int
   discard controlData.ageEntry.text.parseInt(num)
   if controlData.nameEntry.text != "" and controlData.ageEntry.text != "" and num != 0:
-    let id = createPerson(controlData.nameEntry.text, num)
+    let id = createEnvVar(controlData.nameEntry.text, num)
     controlData.list.append $id
   else:
     controlData.nameEntry.text = ""
@@ -118,8 +117,9 @@ proc btnAdd100Cb(btn: Button, controlData: AddControlData) =
     controlData.list.append $id
     
   
-func btnRemoveCb(btn: Button, data: DeleteControlData) =
+proc btnRemoveCb(btn: Button, data: DeleteControlData) =
   data.list.remove data.selection.getSelected()
+  deletePerson(data.selection.getSelected())
   
 func btnRemoveAllCb(btn: Button, data: StringList) =
   data.splice(0, data.getNItems())
