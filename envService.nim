@@ -24,10 +24,10 @@ proc toString(env: EnvVars): string =
 proc getFishPath: string = getHomeDir() / ".config" / "fish" / "config.fish"
 
 proc getFishEnv(): EnvVars =
-  var fileContentLines = getFishPath().readFile.split("\n")
+  var fileContentLines = getFishPath().readFile.split "\n"
   for i, line in fileContentLines:
     if line == "": break
-    [_, k, v] <- line.split(" ")
+    [_, k, v] <- line.split " "
     result.add (line: i, value: v, key: k, isPath: k==PATH)
 
 proc addKV(env: var EnvVars, k, v: string) =
@@ -40,10 +40,10 @@ proc writeFishEnv(env: EnvVars) =
 when isMainModule:
   var x = getFishEnv()
   print x
-  x.addKV("Sas", "sud")
-  x.addKV("PATH", "sud")
-  print x
-  writeFishEnv x
+  # x.addKV("Sas", "sud")
+  # x.addKV("PATH", "sud")
+  # print x
+  # writeFishEnv x
   
   # for a in envPairs():
   #   print a
